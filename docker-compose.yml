@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  my-network:
+    driver: bridge
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    networks:
+      - my-network
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo_data:/data/db
+
+  express-app:
+    image: node:v1
+    container_name: express-app
+    networks:
+      - my-network
+    ports:
+      - "5011:5011"
+    environment:
+      MONGO_URI: "mongodb://admin:password@mongodb:27017/mydatabase?authSource=admin"
+
+  vite-react-app:
+    image: react:v1
+    container_name: vite-react-app
+    networks:
+      - my-network
+    ports:
+      - "5173:5173"
+    environment:
+      MODE: development
+      VITE_DEV_API_URL: "http://localhost:5011/api/auth"
+      VITE_AZURE_DETAILS_FETCH_API_URL: "http://localhost:5011/api/azure/getAzureAccount"
+      VITE_AZURE_DETAILS_STORE_API_URL: "http://localhost:5011/api/azure/addAzureAccount"
+      VITE_CRYPTO_ALGORITHM: "aes-256-cbc"
+      VITE_CRYPTO_KEY: "2c91ee9e2d3f63a5fb90e3a865476b2c9d15a8f7e3b2e517a63f1dfcb867fc21"
+      VITE_CRYPTO_IV: "a3d7e2c3b1f8a913cb45e7b89265f43f"
+      VITE_AZURE_DETAILS_UPDATE_API_URL: "http://localhost:5011/api/azure/updateAzureAccount"
+      VITE_AZURE_DETAILS_DELETE_API_URL: "http://localhost:5011/api/azure/deleteAzureAccount"
+      VITE_AZURE_DETAILS_FETCH_SUBSCRIPTION_API_URL: "http://localhost:5011/api/azure/getSubscription"
+      VITE_AZURE_DETAILS_FETCH_SERVICES_API_URL: "http://localhost:5011/api/azure/getServices"
+      VITE_SECURITY_METRICS_API_URL: "http://localhost:5011/api/azure/security/manual-metrics"
+
+volumes:
+  mongo_data:
