@@ -7,8 +7,8 @@ import {
   FaDribbble,
 } from "react-icons/fa";
 import { Link } from "react-router-dom"; // Make sure to import Link
-import logo from "../../assets/img/logo.png";
-import logoFooter from "../../assets/img/logo_footer1.png";
+import logo from "../../assets/img/logo.png"; // Assuming this is the main logo
+import logoFooter from "../../assets/img/logo_footer1.png"; // Assuming this is the footer-specific logo
 
 
 const Footer = () => {
@@ -20,10 +20,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div>
             <Link to="/" className="flex items-center">
+              {/* Adjusted logo size for better footer proportion */}
               <img
                 src={logoFooter}
-                className="mx-auto -ml-2 pl-8 h-20 sm:h-20 md:h-40 lg:h-60 transition-opacity duration-300 opacity-100"
-                alt="Logo"
+                className="mx-auto -ml-2 pl-8 h-16 sm:h-20 md:h-24 lg:h-28 transition-opacity duration-300 opacity-100"
+                alt="NervOps Logo" // Changed alt text
               />
 
             </Link>       
@@ -36,42 +37,42 @@ const Footer = () => {
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    1on1 Coaching
+                    Cloud Posture Management
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Company Review
+                    Security Monitoring
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Accounts Review
+                    Compliance Reporting
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    HR Consulting
+                    Vulnerability Detection
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    SEO Optimisation
+                    Multi-Cloud Integration
                   </a>
                 </li>
               </ul>
@@ -83,26 +84,26 @@ const Footer = () => {
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
                   <a
-                    href="#"
+                    href="/about-us" // Assuming this is the correct route
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    About
+                    About Us
                   </a>
                 </li>
                 <li>
                   <a
-                    href="/about-us"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Meet the Team
+                    Our Mission
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Accounts Review
+                    Blog
                   </a>
                 </li>
               </ul>
@@ -114,7 +115,7 @@ const Footer = () => {
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
                     Contact
@@ -122,7 +123,7 @@ const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
                     FAQs
@@ -130,10 +131,10 @@ const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Live Chat
+                    Support
                   </a>
                 </li>
               </ul>
@@ -143,34 +144,34 @@ const Footer = () => {
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Accessibility
+                    Privacy Policy
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Returns Policy
+                    Terms of Service
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Refund Policy
+                    Cookie Policy
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#" // Placeholder link, update with actual routes
                     className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                   >
-                    Hiring Statistics
+                    Disclaimer
                   </a>
                 </li>
               </ul>
@@ -182,21 +183,20 @@ const Footer = () => {
           <div className="flex items-center mb-4 md:mb-0">
             <img
               src={logo}
-              className="mr-3 h-8 sm:h-12" // Increased logo size
-              alt="Logo"
+              className="mr-3 h-8 sm:h-10" // Adjusted smaller logo size
+              alt="NervOps Logo" // Changed alt text
             />
-            <p className="text-md font-bold text-gray-900 dark:text-white">UPTIME FURY</p> {/* Added text */}
+            <p className="text-md font-bold text-gray-900 dark:text-white">NervOps</p> {/* Changed text from UPTIME FURY to NervOps */}
           </div>
           <p className="text-md text-gray-500 dark:text-gray-400 text-center flex-1 mb-4 md:mb-0">
             &copy; 2025 NervOps. All rights reserved.
           </p>
           <div className="flex space-x-4 text-md text-gray-500 dark:text-gray-400">
-            <a href="#" className="hover:underline">Terms</a>
+            <a href="#" className="hover:underline">Terms</a> {/* Placeholder link */}
             <span>|</span>
-            <a href="#" className="hover:underline">Conditions</a>
+            <a href="#" className="hover:underline">Privacy</a> {/* Changed from "Conditions" to "Privacy" */}
           </div>
         </div>
-
       </div>
     </footer>
   );
