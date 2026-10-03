@@ -1,6 +1,6 @@
-import { Cloud, Zap, Server, ShieldCheck, Activity } from "lucide-react";
+import { Cloud, Zap, Server, ShieldCheck, Activity, RefreshCw, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import Header from "../components/common/Header";
 import StatCard from "../components/common/StatCard";
@@ -18,47 +18,60 @@ const OverviewPage = () => {
 	}
 
 	const fetchApiUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_API_URL;
-	const fetchSubscirptionsUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_SUBSCRIPTION_API_URL;
-	const fetchServicessUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_SERVICES_API_URL;
+	const fetchSubscriptionsUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_SUBSCRIPTION_API_URL;
+	const fetchServicesUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_SERVICES_API_URL;
 
 	const [azureAccount, setAzureAccount] = useState(null);
 	const [azureSubscriptions, setSubscriptions] = useState([]);
-	const [subsLoading, setSubsLoading] = useState(true);
 	const [services, setServices] = useState([]);
+	const [subsLoading, setSubsLoading] = useState(true);
+	const [servicesLoading, setServicesLoading] = useState(false);
+	const [fetchError, setFetchError] = useState(null);
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const response = await fetch(fetchApiUrl, {
-					method: "GET",
-					credentials: "include",
-					headers: { "Content-Type": "application/json" },
-				});
-				if (!response.ok) throw new Error("Failed to fetch Azure account data");
-				const data = await response.json();
+	// 1. Fetch Azure Account stored for the user
+	const fetchAccount = useCallback(async () => {
+		try {
+			setFetchError(null);
+			const response = await fetch(fetchApiUrl, {
+				method: "GET",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+			});
+			if (!response.ok) throw new Error("Failed to fetch Azure account data");
+			const data = await response.json();
 
-				if (data.azureAccounts && data.azureAccounts.length > 0) {
-					setAzureAccount(data.azureAccounts[0]);
-				}
-			} catch (error) {
-				console.error("Error fetching Azure details:", error);
+			if (data.azureAccounts && data.azureAccounts.length > 0) {
+				setAzureAccount(data.azureAccounts[0]);
+			} else {
+				setAzureAccount(null);
+				setSubsLoading(false);
 			}
-		};
-		fetchData();
+		} catch (error) {
+			console.error("Error fetching Azure details:", error);
+			setFetchError(error.message);
+			setSubsLoading(false);
+		}
 	}, [fetchApiUrl]);
 
 	useEffect(() => {
+		fetchAccount();
+	}, [fetchAccount]);
+
+	// 2. Once Azure account is available, fetch active subscriptions
+	useEffect(() => {
 		if (!azureAccount) return;
 
+		let isMounted = true;
 		const fetchSubscriptions = async () => {
 			try {
+				setSubsLoading(true);
 				const encryptedData = {
 					encryptedTenantId: azureAccount.tenantId,
 					encryptedClientId: azureAccount.clientId,
 					encryptedClientSecret: azureAccount.clientSecret,
 				};
 
-				const response = await fetch(fetchSubscirptionsUrl, {
+				const response = await fetch(fetchSubscriptionsUrl, {
 					method: "POST",
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
@@ -66,19 +79,33 @@ const OverviewPage = () => {
 				});
 				if (!response.ok) throw new Error("Failed to fetch subscription data");
 				const result = await response.json();
-				setSubscriptions(result.data || []);
+				if (isMounted) {
+					setSubscriptions(result.data || []);
+					setSubsLoading(false);
+				}
 			} catch (error) {
 				console.error("Error fetching Azure subscriptions:", error);
+				if (isMounted) {
+					setFetchError(error.message);
+					setSubsLoading(false);
+				}
 			}
 		};
 		fetchSubscriptions();
-	}, [fetchSubscirptionsUrl, azureAccount]);
 
+		return () => {
+			isMounted = false;
+		};
+	}, [fetchSubscriptionsUrl, azureAccount]);
+
+	// 3. Once subscriptions are loaded, fetch services inventory
 	useEffect(() => {
 		if (!azureAccount || !azureSubscriptions || azureSubscriptions.length === 0) return;
 
+		let isMounted = true;
 		const fetchServices = async () => {
 			try {
+				setServicesLoading(true);
 				const encryptedData = {
 					encryptedTenantId: azureAccount.tenantId,
 					encryptedClientId: azureAccount.clientId,
@@ -86,7 +113,7 @@ const OverviewPage = () => {
 					subscriptionId: azureSubscriptions[0].id,
 				};
 
-				const response = await fetch(fetchServicessUrl, {
+				const response = await fetch(fetchServicesUrl, {
 					method: "POST",
 					credentials: "include",
 					headers: { "Content-Type": "application/json" },
@@ -94,15 +121,26 @@ const OverviewPage = () => {
 				});
 				if (!response.ok) throw new Error("Failed to fetch services data");
 				const servicesData = await response.json();
-				setServices(servicesData.data || []);
+				if (isMounted) {
+					setServices(servicesData.data || []);
+				}
 			} catch (error) {
 				console.error("Error fetching services:", error);
+				if (isMounted) {
+					setFetchError(error.message);
+				}
 			} finally {
-				setSubsLoading(false);
+				if (isMounted) {
+					setServicesLoading(false);
+				}
 			}
 		};
 		fetchServices();
-	}, [fetchServicessUrl, azureAccount, azureSubscriptions]);
+
+		return () => {
+			isMounted = false;
+		};
+	}, [fetchServicesUrl, azureAccount, azureSubscriptions]);
 
 	return (
 		<div className="flex-1 overflow-auto relative z-10 bg-[#090d16]">
@@ -112,6 +150,22 @@ const OverviewPage = () => {
 			/>
 
 			<main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+				{/* Optional Error Alert */}
+				{fetchError && (
+					<div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<AlertCircle size={16} />
+							<span>Telemetry Sync Warning: {fetchError}</span>
+						</div>
+						<button
+							onClick={() => fetchAccount()}
+							className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition text-[11px] font-mono cursor-pointer"
+						>
+							Retry Sync
+						</button>
+					</div>
+				)}
+
 				{/* Top Status Cards */}
 				<motion.div
 					className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8"
@@ -131,8 +185,18 @@ const OverviewPage = () => {
 					<StatCard
 						name="Subscriptions"
 						icon={ShieldCheck}
-						value={subsLoading ? "Loading..." : `${azureSubscriptions.length} Active`}
-						description="Monitored cloud scopes"
+						value={
+							subsLoading
+								? "Syncing..."
+								: azureSubscriptions.length > 0
+								? `${azureSubscriptions.length} Active`
+								: "0 Active"
+						}
+						description={
+							azureSubscriptions.length > 0
+								? "Monitored cloud scopes"
+								: "Check IAM Reader role"
+						}
 						color="#34d399"
 					/>
 					<StatCard
@@ -140,18 +204,22 @@ const OverviewPage = () => {
 						icon={Zap}
 						value={
 							subsLoading
-								? "Loading..."
+								? "Syncing..."
 								: azureSubscriptions.length > 0
 								? azureSubscriptions[0].name
-								: "N/A"
+								: "Not Found"
 						}
-						description={azureSubscriptions[0]?.id ? `ID: ${azureSubscriptions[0].id.slice(0, 8)}...` : "None"}
+						description={
+							azureSubscriptions[0]?.id
+								? `ID: ${azureSubscriptions[0].id.slice(0, 8)}...`
+								: "Authorize Subscription"
+						}
 						color="#f59e0b"
 					/>
 					<StatCard
 						name="Discovered Resources"
 						icon={Server}
-						value={subsLoading ? "..." : services.length}
+						value={servicesLoading ? "Scanning..." : services.length}
 						description="Compute, network, & storage assets"
 						color="#818cf8"
 					/>

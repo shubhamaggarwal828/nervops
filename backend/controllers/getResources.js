@@ -234,7 +234,7 @@ export const fetchResources = async (req, res) => {
       let apiVersion = resource.apiVersion;
       if (!apiVersion) {
         if (resource.type.toLowerCase() === "microsoft.compute/disks") {
-          apiVersion = "2021-07-01";
+          apiVersion = "2021-04-01";
         } else {
           apiVersion = "2021-04-01";
         }
@@ -248,9 +248,15 @@ export const fetchResources = async (req, res) => {
         if (resource.type.toLowerCase() === "microsoft.compute/virtualmachines" && resourceGroup) {
           fullResource = await resourceClient.resources.getById(resource.id, apiVersion);
           try {
-            const instanceView = await computeClient.virtualMachines.getInstanceView(resourceGroup, resource.name);
+            const instanceView = typeof computeClient.virtualMachines.instanceView === "function"
+              ? await computeClient.virtualMachines.instanceView(resourceGroup, resource.name)
+              : typeof computeClient.virtualMachines.getInstanceView === "function"
+              ? await computeClient.virtualMachines.getInstanceView(resourceGroup, resource.name)
+              : null;
             // Attach the full instance view details for security analysis.
-            fullResource.instanceView = instanceView;
+            if (instanceView) {
+              fullResource.instanceView = instanceView;
+            }
           } catch (vmErr) {
             console.error(`Error fetching instance view for VM ${resource.id}:`, vmErr.message);
           }

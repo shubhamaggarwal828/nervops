@@ -276,6 +276,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ProductsPage from "./pages/ProductsPage";
 import SettingsPage from "./pages/SettingsPage";
 import UsersPage from "./pages/UsersPage";
+import TagCompliancePage from "./pages/TagCompliancePage";
 // Protect routes that require authentication
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -343,6 +344,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <UsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tag-compliance"
+            element={
+              <ProtectedRoute>
+                <TagCompliancePage />
               </ProtectedRoute>
             }
           />

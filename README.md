@@ -257,13 +257,14 @@ chmod +x scripts/cleanup-test-azure-resources.sh
 
 ## 📸 Screenshots & UI Tour
 
-| Page | Description |
-| :--- | :--- |
-| **Authentication & Verification** | Glassmorphic, obsidian-themed login, signup, and 6-digit email OTP verification. |
-| **Overview Dashboard** | Real-time tenant health, subscription counters, discovered assets, and active resource status pills. |
-| **Detailed Metrics & Mapping** | Resource distribution by type, location, and resource group with interactive ARM property inspectors. |
-| **Security Audit Report** | CIS benchmark score gauge (0-100), severity distribution, open NSG ports breakdown, and compliance audit log. |
-| **Settings & Credential Vault** | Secure, client-side AES-256 encrypted Azure service principal vault with live test connection. |
+| Page | Preview | Key Capabilities |
+| :--- | :--- | :--- |
+| **Authentication Portal** | ![Login Portal](docs/screenshots/01_login_page.png) | Obsidian radial dark theme, responsive email validation, OTP flow. |
+| **Azure Overview** | ![Azure Overview](docs/screenshots/02_overview_dashboard.png) | Real-time tenant health, subscription counters, discovered assets, active status pills. |
+| **Detailed Metrics & Mapping** | ![Detailed Metrics](docs/screenshots/03_detailed_metrics.png) | Regional & RG bar charts, SKU distribution donuts, expandable JSON property inspector. |
+| **Cloud Security & Compliance** | ![Security Audit Report](docs/screenshots/04_security_audit_report.png) | 0-100 radial CIS security posture score gauge, severity distribution, evaluated service coverage. |
+| **Tag Governance & Compliance** | ![Tag Compliance](docs/screenshots/05_tag_compliance.png) | Mandatory tag schema enforcer, violation donut, top missing tags, and audit ledger. |
+| **Settings & Security Vault** | ![Settings Vault](docs/screenshots/06_settings_vault.png) | Client-side AES-256 encrypted Azure service principal credential vault and admin profile. |
 
 ---
 

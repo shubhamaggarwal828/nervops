@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variables
-REPO_URL="git@github.com:GJG-GUNDO/nervops_prod_jenkins.git"
+REPO_URL="git@github.com:shubhamaggarwal828/nervops.git"
 BRANCH="main"
 WORKDIR="/path/to/workdir"
 NETWORK_NAME="my-network"

@@ -8,7 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  Cloud
+  Cloud,
+  Tag
 } from "lucide-react";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -33,6 +34,12 @@ const SIDEBAR_ITEMS = [
     icon: ShieldAlert,
     href: "/azure-audit-report",
     color: "#f59e0b", // amber-500
+  },
+  {
+    name: "Tag Compliance",
+    icon: Tag,
+    href: "/tag-compliance",
+    color: "#a855f7", // purple-500
   },
   {
     name: "Settings & Cloud Sync",
