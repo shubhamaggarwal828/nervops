@@ -217,6 +217,56 @@ npm run dev
 
 ---
 
+## 🧪 Azure Test Infrastructure & Simulation Scripts
+
+To quickly test and demo NervOps' real-time inventory discovery, CIS compliance audit, and telemetry charts, we provide two bash automation scripts located in [`scripts/`](file:///Users/shubham/Downloads/Documents/nervops/scripts/):
+
+### 1. Provision Test Environment
+The provisioning script automatically deploys a realistic test resource topology:
+* **Resource Group**: `rg-nervops-test`
+* **VNet & Subnet**: `vnet-nervops-test` (`10.10.0.0/16`) with subnet `snet-nervops-default`
+* **Network Security Group (NSG)**: `nsg-nervops-test` configured with open Port 22 (SSH) to deliberately trigger a CIS security finding
+* **Storage Account**: `stnervops<random>` configured with public blob access to test CSPM compliance
+* **Linux Virtual Machine**: `vm-nervops-demo` (`Standard_B1s` low-cost tier)
+
+Run the script using the Azure CLI:
+```bash
+# Make script executable
+chmod +x scripts/deploy-test-azure-resources.sh
+
+# Run provisioning (defaults to location 'eastus')
+./scripts/deploy-test-azure-resources.sh
+
+# Or specify custom location/resource group:
+AZURE_LOCATION=centralus AZURE_RG=rg-nervops-demo ./scripts/deploy-test-azure-resources.sh
+```
+
+Once provisioned, refresh your NervOps dashboard at [http://localhost:5173](http://localhost:5173) to see the newly discovered VM, Storage Account, and NSG audit alerts appear immediately.
+
+### 2. Teardown & Clean Up
+When testing is complete, destroy all provisioned test resources in a single command with zero lingering charges:
+```bash
+# Make script executable
+chmod +x scripts/cleanup-test-azure-resources.sh
+
+# Run teardown
+./scripts/cleanup-test-azure-resources.sh
+```
+
+---
+
+## 📸 Screenshots & UI Tour
+
+| Page | Description |
+| :--- | :--- |
+| **Authentication & Verification** | Glassmorphic, obsidian-themed login, signup, and 6-digit email OTP verification. |
+| **Overview Dashboard** | Real-time tenant health, subscription counters, discovered assets, and active resource status pills. |
+| **Detailed Metrics & Mapping** | Resource distribution by type, location, and resource group with interactive ARM property inspectors. |
+| **Security Audit Report** | CIS benchmark score gauge (0-100), severity distribution, open NSG ports breakdown, and compliance audit log. |
+| **Settings & Credential Vault** | Secure, client-side AES-256 encrypted Azure service principal vault with live test connection. |
+
+---
+
 ## 🔒 Security Best Practices
 
 * **Client-side Encryption**: Azure credentials are encrypted with AES-256 in the browser before being transmitted to the backend or saved to MongoDB.
@@ -228,3 +278,4 @@ npm run dev
 ## 📄 License
 
 This project is licensed under the ISC License.
+

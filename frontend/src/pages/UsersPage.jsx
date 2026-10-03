@@ -1,6 +1,5 @@
-// UsersPage.jsx
 import React, { useState, useEffect } from "react";
-import { Server, Shield, AlertTriangle } from "lucide-react";
+import { Server, Shield, AlertTriangle, ShieldCheck, CheckCircle2, ShieldAlert } from "lucide-react";
 import Header from "../components/common/Header";
 import StatCard from "../components/common/StatCard";
 import DetailedSecurityMetrics from "../components/products/DetailedSecurityMetrics";
@@ -13,21 +12,23 @@ import {
 	CartesianGrid,
 	Tooltip as RechartsTooltip,
 	Legend as RechartsLegend,
-	PieChart,
-	Pie,
-	Cell,
+	ResponsiveContainer,
 	RadialBarChart,
 	RadialBar,
-	ResponsiveContainer
+	PieChart,
+	Pie,
+	Cell
 } from "recharts";
+import { motion } from "framer-motion";
 
 // Helper: Shorten resource ID to "resourceGroup/resourceName"
 const shortenResourceId = (id) => {
+	if (!id) return "N/A";
 	const match = id.match(/resourceGroups\/([^/]+)\/providers\/[^/]+\/[^/]+\/([^/]+)/i);
-	return match ? `${match[1]}/${match[2]}` : id;
+	return match ? `${match[1]}/${match[2]}` : id.split("/").pop();
 };
 
-// Helper: Map evaluation to a label for grouping
+// Helper: Map evaluation to label
 const mapEvaluationToLabel = (evaluation) => {
 	if (evaluation === "Not Secure") return "Critical";
 	if (evaluation === "Warning") return "Warning";
@@ -35,26 +36,18 @@ const mapEvaluationToLabel = (evaluation) => {
 	return evaluation;
 };
 
-// Colors for severity labels
-const severityColors = {
-	Critical: "#DC2626", // red
-	Warning: "#FACC15",  // yellow
-	Okay: "#10B981"      // green
-};
-
 const UsersPage = () => {
 	const { user } = useAuthStore();
 	const [azureAccount, setAzureAccount] = useState(null);
 	const [azureSubscriptions, setSubscriptions] = useState([]);
-	const [securityData, setSecurityData] = useState(null); // holds security metrics report
+	const [securityData, setSecurityData] = useState(null);
 	const [loading, setLoading] = useState(true);
 
-	// API endpoints from environment variables
 	const fetchApiUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_API_URL;
 	const fetchSubscriptionsUrl = import.meta.env.VITE_AZURE_DETAILS_FETCH_SUBSCRIPTION_API_URL;
 	const fetchSecurityMetricsUrl = import.meta.env.VITE_SECURITY_METRICS_API_URL;
 
-	// --- 1. Fetch Azure account using GET ---
+	// 1. Fetch Azure account
 	useEffect(() => {
 		const fetchAccount = async () => {
 			try {
@@ -67,9 +60,6 @@ const UsersPage = () => {
 				const data = await response.json();
 				if (data.azureAccounts && data.azureAccounts.length > 0) {
 					setAzureAccount(data.azureAccounts[0]);
-				} else {
-					setAzureAccount(null);
-					console.warn("No Azure account found");
 				}
 			} catch (error) {
 				console.error("Error fetching Azure account:", error);
@@ -78,7 +68,7 @@ const UsersPage = () => {
 		fetchAccount();
 	}, [fetchApiUrl]);
 
-	// --- 2. Fetch subscriptions ---
+	// 2. Fetch subscriptions
 	useEffect(() => {
 		if (!azureAccount) return;
 		const fetchSubs = async () => {
@@ -96,7 +86,7 @@ const UsersPage = () => {
 				});
 				if (!response.ok) throw new Error("Failed to fetch subscription data");
 				const result = await response.json();
-				setSubscriptions(result.data);
+				setSubscriptions(result.data || []);
 			} catch (error) {
 				console.error("Error fetching subscriptions:", error);
 			}
@@ -104,7 +94,7 @@ const UsersPage = () => {
 		fetchSubs();
 	}, [fetchSubscriptionsUrl, azureAccount]);
 
-	// --- 3. Fetch security metrics ---
+	// 3. Fetch security metrics
 	useEffect(() => {
 		if (!azureAccount || !azureSubscriptions || azureSubscriptions.length === 0) return;
 		const fetchMetrics = async () => {
@@ -133,112 +123,84 @@ const UsersPage = () => {
 		fetchMetrics();
 	}, [fetchSecurityMetricsUrl, azureAccount, azureSubscriptions]);
 
-	// Render blank placeholders while loading
-	if (loading)
+	if (loading) {
 		return (
-			<div className="flex-1 overflow-auto relative z-10">
-				<Header title="Security Overview" />
-				<main className="max-w-7xl mx-auto py-6 px-4 lg:px-8">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-						<StatCard name="Total Resources" icon={Server} value="" color="#4F46E5" />
-						<StatCard name="Issues Found" icon={AlertTriangle} value="" color="#DC2626" />
-						<StatCard name="Good Configurations" icon={Shield} value="" color="#16A34A" />
+			<div className="flex-1 overflow-auto relative z-10 bg-[#090d16]">
+				<Header
+					title="Cloud Security & Compliance Audit"
+					subtitle="CIS Benchmarks, threat evaluation, and security posture score"
+				/>
+				<main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+					<div className="flex h-96 items-center justify-center">
+						<div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
 					</div>
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-						<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700 min-h-[300px]"></div>
-						<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700 min-h-[300px]"></div>
-					</div>
-					<div className="min-h-[400px]"></div>
 				</main>
 			</div>
 		);
+	}
 
-	// Destructure key metrics from securityData
-	const { totalResources, securityIssues, securityGoodAspects, checkedServices, missingServices, detailedNSGRules } = securityData;
+	const {
+		totalResources = 0,
+		securityIssues = [],
+		securityGoodAspects = [],
+		checkedServices = [],
+		detailedNSGRules = []
+	} = securityData || {};
 
-	// Chart Data: Issues by Severity (from securityIssues only)
-	const severityCounts = securityIssues.reduce((acc, issue) => {
-		// Map "Low" -> "Okay", "Medium" -> "Warning"
+	// Severity breakdown
+	const severityCounts = { Critical: 0, Warning: 0, Okay: 0 };
+	securityIssues.forEach((issue) => {
 		let label = issue.severity;
 		if (label === "Low") label = "Okay";
 		if (label === "Medium") label = "Warning";
-		acc[label] = (acc[label] || 0) + 1;
-		return acc;
-	}, {});
-	// Also add NSG rules evaluations counts
+		if (severityCounts[label] !== undefined) severityCounts[label] += 1;
+		else severityCounts[label] = 1;
+	});
 	if (detailedNSGRules) {
-		detailedNSGRules.forEach(nsg => {
-			nsg.evaluatedRules.forEach(rule => {
+		detailedNSGRules.forEach((nsg) => {
+			nsg.evaluatedRules?.forEach((rule) => {
 				const label = mapEvaluationToLabel(rule.evaluation);
-				severityCounts[label] = (severityCounts[label] || 0) + 1;
+				if (severityCounts[label] !== undefined) severityCounts[label] += 1;
+				else severityCounts[label] = 1;
 			});
 		});
 	}
-	const combinedSeverityData = Object.entries(severityCounts).map(([severity, count]) => ({ severity, count }));
-
-	// Chart Data: Issues by Group (from securityIssues)
-	const issuesByGroup = securityIssues.reduce((acc, issue) => {
-		const group = issue.group;
-		acc[group] = (acc[group] || 0) + 1;
-		return acc;
-	}, {});
-	const issuesGroupData = Object.entries(issuesByGroup).map(([group, count]) => ({ group, count }));
-
-	// Chart Data: Good Configurations by Group (from securityGoodAspects)
-	const goodByGroup = securityGoodAspects.reduce((acc, good) => {
-		const group = good.group;
-		acc[group] = (acc[group] || 0) + 1;
-		return acc;
-	}, {});
-	const goodGroupData = Object.entries(goodByGroup).map(([group, count]) => ({ group, count }));
-
-	// Chart Data: Overall Security Ratio (Issues vs Good)
-	const overallRatioData = [
-		{ name: "Issues", value: securityIssues.length },
-		{ name: "Good", value: securityGoodAspects.length }
+	const combinedSeverityData = [
+		{ severity: "Critical", count: severityCounts.Critical, fill: "#f43f5e" },
+		{ severity: "Warning", count: severityCounts.Warning, fill: "#f59e0b" },
+		{ severity: "Passed", count: severityCounts.Okay + securityGoodAspects.length, fill: "#10b981" }
 	];
 
-	// Chart Data: Service Usage (from checkedServices)
-	const usedCount = checkedServices.filter((s) => s.used).length;
-	const notUsedCount = checkedServices.length - usedCount;
-	const usageData = [
-		{ name: "Used", value: usedCount },
-		{ name: "Not Used", value: notUsedCount }
-	];
-
-	// Calculate overall security score (formula: 100 - (Critical issues × 5 + Warning issues × 2))
+	// Calculate overall security score (out of 100)
 	let criticalCount = securityIssues.filter(
 		(issue) => issue.severity === "Critical" || issue.evaluation === "Not Secure"
 	).length;
 	let warningCount = securityIssues.filter(
 		(issue) => issue.severity === "Medium" || issue.evaluation === "Warning"
 	).length;
-	// Also include NSG rule counts
 	if (detailedNSGRules) {
-		detailedNSGRules.forEach(nsg => {
-			nsg.evaluatedRules.forEach(rule => {
+		detailedNSGRules.forEach((nsg) => {
+			nsg.evaluatedRules?.forEach((rule) => {
 				if (rule.severity === "Critical" || rule.evaluation === "Not Secure") criticalCount++;
 				else if (rule.severity === "Medium" || rule.evaluation === "Warning") warningCount++;
 			});
 		});
 	}
 	const securityScore = Math.max(0, 100 - (criticalCount * 5 + warningCount * 2));
-
-	const scoreData = [{ name: "Score", value: securityScore }];
-
-	// Impact Contributions: points deducted by critical and warning issues
-	const impactData = [
-		{ name: "Critical Impact", value: criticalCount * 5 },
-		{ name: "Warning Impact", value: warningCount * 2 },
-		{ name: "Remaining", value: Math.max(0, 100 - (criticalCount * 5 + warningCount * 2)) }
+	const scoreData = [
+		{
+			name: "Score",
+			value: securityScore,
+			fill: securityScore > 80 ? "#10b981" : securityScore > 50 ? "#f59e0b" : "#f43f5e"
+		}
 	];
 
-	// Additional Chart: Stacked NSG Rules Chart
+	// Stacked NSG rules data
 	const nsgStackedData = [];
 	if (detailedNSGRules) {
-		detailedNSGRules.forEach(nsg => {
+		detailedNSGRules.forEach((nsg) => {
 			const counts = { resource: shortenResourceId(nsg.resourceId), Critical: 0, Warning: 0, Okay: 0 };
-			nsg.evaluatedRules.forEach(rule => {
+			nsg.evaluatedRules?.forEach((rule) => {
 				const label = mapEvaluationToLabel(rule.evaluation);
 				counts[label] = (counts[label] || 0) + 1;
 			});
@@ -247,145 +209,203 @@ const UsersPage = () => {
 	}
 
 	return (
-		<div className="flex-1 overflow-auto relative z-10">
-			<Header title="Security Overview" />
-			<main className="max-w-7xl mx-auto py-6 px-4 lg:px-8">
-				{/* Metrics Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-					<StatCard name="Total Resources" icon={Server} value={totalResources} color="#4F46E5" />
-					<StatCard name="Issues Found" icon={AlertTriangle} value={securityIssues.length} color="#DC2626" />
-					<StatCard name="Good Configurations" icon={Shield} value={securityGoodAspects.length} color="#16A34A" />
-				</div>
-				{/* Detailed Security Metrics Tables */}
-				<DetailedSecurityMetrics data={securityData} />
+		<div className="flex-1 overflow-auto relative z-10 bg-[#090d16]">
+			<Header
+				title="Cloud Security & Compliance Audit"
+				subtitle="CIS Benchmarks, threat evaluation, and security posture score"
+			/>
+			<main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+				{/* Top Stat Cards */}
+				<motion.div
+					className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"
+					initial={{ opacity: 0, y: 15 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.3 }}
+				>
+					<StatCard
+						name="Evaluated Assets"
+						icon={Server}
+						value={totalResources}
+						description="Resources audited against CIS"
+						color="#06b6d4"
+					/>
+					<StatCard
+						name="Security Posture"
+						icon={ShieldCheck}
+						value={`${securityScore}/100`}
+						description={securityScore > 80 ? "Healthy Baseline" : "Action Recommended"}
+						color={securityScore > 80 ? "#10b981" : "#f59e0b"}
+					/>
+					<StatCard
+						name="Total Findings"
+						icon={AlertTriangle}
+						value={securityIssues.length}
+						description={`${criticalCount} Critical, ${warningCount} Warning`}
+						color="#f43f5e"
+					/>
+					<StatCard
+						name="Hardened Baseline"
+						icon={Shield}
+						value={securityGoodAspects.length}
+						description="Compliant control points"
+						color="#10b981"
+					/>
+				</motion.div>
 
-				{/* Table for Checked Services */}
-				<div className="overflow-x-auto mb-8">
-					<h3 className="text-xl font-semibold text-gray-100 mb-2">Services Usage</h3>
-					<table className="min-w-full divide-y divide-gray-700">
-						<thead>
-							<tr>
-								<th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Service</th>
-								<th className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Used</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-gray-700">
+				{/* Charts Section */}
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+					{/* Overall Security Score Gauge Card */}
+					<motion.div
+						className="rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80 p-6 shadow-xl flex flex-col justify-between"
+						initial={{ opacity: 0, y: 15 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.3 }}
+					>
+						<div>
+							<h3 className="text-base font-bold text-white font-heading tracking-tight mb-1">
+								Security Posture Score
+							</h3>
+							<p className="text-xs text-slate-400">Weighted deduction algorithm</p>
+						</div>
+						<div className="w-full h-52 relative flex items-center justify-center">
+							<ResponsiveContainer width="100%" height="100%">
+								<RadialBarChart
+									cx="50%"
+									cy="50%"
+									innerRadius="75%"
+									outerRadius="100%"
+									data={scoreData}
+									startAngle={180}
+									endAngle={0}
+								>
+									<RadialBar
+										background={{ fill: "#1e293b" }}
+										clockWise
+										dataKey="value"
+										cornerRadius={8}
+									/>
+								</RadialBarChart>
+							</ResponsiveContainer>
+							<div className="absolute text-center mt-6">
+								<span className="text-4xl font-extrabold font-mono text-white tracking-tight">
+									{securityScore}%
+								</span>
+								<p className="text-[11px] font-mono text-slate-400 mt-0.5">
+									{securityScore >= 80 ? "LOW RISK" : "HIGH RISK"}
+								</p>
+							</div>
+						</div>
+						<p className="text-[11px] text-slate-500 text-center font-mono">
+							-5 pts per critical • -2 pts per warning
+						</p>
+					</motion.div>
+
+					{/* Severity Distribution Chart */}
+					<motion.div
+						className="rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80 p-6 shadow-xl"
+						initial={{ opacity: 0, y: 15 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.3 }}
+					>
+						<h3 className="text-base font-bold text-white font-heading tracking-tight mb-1">
+							Findings by Severity
+						</h3>
+						<p className="text-xs text-slate-400 mb-4">Total detected across all categories</p>
+						<div className="w-full h-52">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart data={combinedSeverityData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+									<CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+									<XAxis dataKey="severity" stroke="#64748b" fontSize={12} tick={{ fill: "#94a3b8" }} />
+									<YAxis stroke="#64748b" fontSize={12} allowDecimals={false} tick={{ fill: "#94a3b8" }} />
+									<RechartsTooltip
+										contentStyle={{
+											backgroundColor: "#0f172a",
+											borderColor: "#1e293b",
+											borderRadius: "0.75rem",
+											fontSize: "12px",
+										}}
+									/>
+									<Bar dataKey="count" radius={[6, 6, 0, 0]} />
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</motion.div>
+
+					{/* Service Coverage / Checked Services */}
+					<motion.div
+						className="rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80 p-6 shadow-xl flex flex-col justify-between"
+						initial={{ opacity: 0, y: 15 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.3 }}
+					>
+						<div>
+							<h3 className="text-base font-bold text-white font-heading tracking-tight mb-1">
+								Security Benchmark Coverage
+							</h3>
+							<p className="text-xs text-slate-400 mb-3">Core Azure services evaluated</p>
+						</div>
+						<div className="space-y-2 overflow-y-auto max-h-52 pr-1">
 							{checkedServices.map((item, idx) => (
-								<tr key={idx} className="hover:bg-gray-800">
-									<td className="px-4 py-2 text-sm text-gray-300">{item.service}</td>
-									<td
-										className="px-4 py-2 text-sm font-bold"
-										style={{ color: item.used ? "#10B981" : "#DC2626" }}
+								<div
+									key={idx}
+									className="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80"
+								>
+									<span className="text-xs font-medium text-slate-300 font-mono">
+										{item.service}
+									</span>
+									<span
+										className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+											item.used
+												? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+												: "bg-slate-800 text-slate-400"
+										}`}
 									>
-										{item.used ? "Yes" : "No"}
-									</td>
-								</tr>
+										{item.used ? "EVALUATED" : "NOT DEPLOYED"}
+									</span>
+								</div>
 							))}
-						</tbody>
-					</table>
+						</div>
+					</motion.div>
 				</div>
 
-				{/* Dynamic Graphs */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-					{/* Combined Issues by Severity Chart */}
-					<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700">
-						<h3 className="text-xl font-semibold text-gray-100 mb-4">Combined Issues by Severity</h3>
-						<BarChart width={500} height={300} data={combinedSeverityData}>
-							<CartesianGrid strokeDasharray="3 3" />
-							<XAxis dataKey="severity" stroke="#fff" />
-							<YAxis stroke="#fff" />
-							<RechartsTooltip />
-							<RechartsLegend />
-							<Bar dataKey="count" fill="#F97316" />
-						</BarChart>
-					</div>
-					{/* Service Usage Chart
-					<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700">
-						<h3 className="text-xl font-semibold text-gray-100 mb-4">Service Usage</h3>
-						<PieChart width={400} height={300}>
-							<Pie
-								dataKey="value"
-								data={usageData}
-								cx="50%"
-								cy="50%"
-								outerRadius={80}
-								innerRadius={40}
-								label={({ payload }) => `${payload.name}: ${payload.value}`}
-							>
-								{usageData.map((entry, index) => (
-									<Cell key={`cell-usage-${index}`} fill={entry.name === "Used" ? "#10B981" : "#DC2626"} />
-								))}
-							</Pie>
-							<RechartsTooltip formatter={(value) => [`${value}`, "Count"]} />
-							<RechartsLegend />
-						</PieChart>
-					</div> */}
-
-
-				{/* Additional Graphs */}
-				
-
-				{/* Overall Security Score Gauge */}
-				<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700 mb-8">
-					<h3 className="text-xl font-semibold text-gray-100 mb-4">Overall Security Score</h3>
-					<ResponsiveContainer width="100%" height={300}>
-						<RadialBarChart
-							cx="50%"
-							cy="50%"
-							innerRadius="70%"
-							outerRadius="100%"
-							data={scoreData}
-							startAngle={180}
-							endAngle={0}
-						>
-							<RadialBar minAngle={15} background clockWise dataKey="value" fill="#F97316" />
-							<RechartsTooltip />
-						</RadialBarChart>
-					</ResponsiveContainer>
-					<div className="text-center mt-2 text-white text-xl">{securityScore}%</div>
-					<p className="text-gray-400 text-sm mt-1">
-						Calculated as 100 - (Critical issues × 5 + Warning issues × 2)
-					</p>
-				</div>
-
-				{/* Impact Contributions Chart */}
-				<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700 mb-8">
-					<h3 className="text-xl font-semibold text-gray-100 mb-4">Impact Contributions</h3>
-					<BarChart width={500} height={300} data={impactData}>
-						<CartesianGrid strokeDasharray="3 3" />
-						<XAxis dataKey="name" stroke="#fff" />
-						<YAxis stroke="#fff" />
-						<RechartsTooltip />
-						<RechartsLegend />
-						<Bar dataKey="value" fill="#F97316" />
-					</BarChart>
-					<p className="text-gray-400 text-sm mt-1">
-						Shows points deducted: Critical issues (×5) and Warning issues (×2)
-					</p>
-				</div>
-
-				{/* Stacked NSG Rules Chart */}
+				{/* Stacked NSG Rules BarChart if available */}
 				{nsgStackedData.length > 0 && (
-					<div className="bg-[#282c31] rounded-lg p-4 shadow-lg border border-gray-700 mb-8">
-						<h3 className="text-xl font-semibold text-gray-100 mb-4">NSG Rules Summary (Stacked)</h3>
-						<ResponsiveContainer width="100%" height={300}>
-							<BarChart data={nsgStackedData}>
-								<CartesianGrid strokeDasharray="3 3" />
-								<XAxis dataKey="resource" stroke="#fff" />
-								<YAxis stroke="#fff" />
-								<RechartsTooltip />
-								<RechartsLegend />
-								<Bar dataKey="Critical" stackId="a" fill="#DC2626" />
-								<Bar dataKey="Warning" stackId="a" fill="#FACC15" />
-								<Bar dataKey="Okay" stackId="a" fill="#10B981" />
-							</BarChart>
-						</ResponsiveContainer>
-					</div>
-				
+					<motion.div
+						className="rounded-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80 p-6 shadow-xl mb-8"
+						initial={{ opacity: 0, y: 15 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.3 }}
+					>
+						<h3 className="text-base font-bold text-white font-heading tracking-tight mb-1">
+							NSG Rule Risk Distribution per Security Group
+						</h3>
+						<p className="text-xs text-slate-400 mb-4">Breakdown of open and restricted ports across your NSGs</p>
+						<div className="w-full h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart data={nsgStackedData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+									<CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+									<XAxis dataKey="resource" stroke="#64748b" fontSize={11} angle={-15} textAnchor="end" tick={{ fill: "#94a3b8" }} />
+									<YAxis stroke="#64748b" fontSize={11} allowDecimals={false} tick={{ fill: "#94a3b8" }} />
+									<RechartsTooltip
+										contentStyle={{
+											backgroundColor: "#0f172a",
+											borderColor: "#1e293b",
+											borderRadius: "0.75rem",
+											fontSize: "12px",
+										}}
+									/>
+									<RechartsLegend verticalAlign="top" height={36} />
+									<Bar dataKey="Critical" stackId="a" fill="#f43f5e" radius={[0, 0, 0, 0]} />
+									<Bar dataKey="Warning" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+									<Bar dataKey="Okay" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</motion.div>
 				)}
 
-</div>
-
+				{/* Detailed Audit Tables */}
+				<DetailedSecurityMetrics data={securityData} />
 			</main>
 		</div>
 	);
