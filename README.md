@@ -41,8 +41,9 @@ graph TD
 | **Frontend** | React 18, Vite 5, Tailwind CSS, Lucide Icons, Framer Motion, Recharts |
 | **Backend** | Node.js (v23), Express 4, Mongoose, JWT, Mailtrap SDK, CryptoJS |
 | **Cloud Integration** | `@azure/identity`, `@azure/arm-resources`, `@azure/arm-security`, `@azure/arm-billing`, `@azure/arm-subscriptions` |
-| **Database** | MongoDB |
-| **DevOps & Infra** | Docker, Docker Compose, Blue-Green deployment scripts, Nginx |
+| **Database** | MongoDB (Docker container or MongoDB Atlas Cluster) |
+| **Email Service** | Mailtrap (Email verification & password reset) |
+| **DevOps & Infra** | Docker, Docker Compose, Blue-Green deployment scripts |
 
 ---
 
@@ -64,6 +65,7 @@ nervops/
 │   ├── models/                   # Mongoose schemas (User, AzureAccount)
 │   ├── middleware/               # JWT token verification middleware
 │   ├── Dockerfile                # Sanitized production container definition
+│   ├── .env.example              # Template environment configuration
 │   └── package.json
 ├── docker-compose.yml            # Main Docker Compose orchestration
 ├── docker-compose.blue.yml       # Blue deployment compose file
@@ -76,23 +78,19 @@ nervops/
 
 ## 🚀 Quick Start (Docker Compose)
 
-### 1. Prerequisites
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Docker v20+ and Compose v2+)
-* An active [Microsoft Azure](https://portal.azure.com/) subscription with an App Registration / Service Principal
-
-### 2. Clone Repository
+### 1. Clone Repository
 ```bash
 git clone git@github.com:shubhamaggarwal828/nervops_prod_jenkins.git nervops
 cd nervops
 ```
 
-### 3. Launch Services
+### 2. Launch Services
 Run the entire stack with Docker Compose:
 ```bash
 docker compose up -d --build
 ```
 
-### 4. Access the Applications
+### 3. Access the Applications
 * **Dashboard (Web UI)**: [http://localhost:5173](http://localhost:5173)
 * **Backend API**: [http://localhost:5011](http://localhost:5011)
 * **MongoDB**: `localhost:27017`
@@ -104,22 +102,99 @@ docker compose logs -f
 
 ---
 
-## 🔑 Connecting Your Azure Subscription
+## 📧 Mailtrap Setup (Email Verification & Auth)
 
-To monitor your Azure tenant from the dashboard:
+NervOps sends 6-digit email verification codes upon signup and password reset links via Mailtrap.
 
-1. **Create an Azure Service Principal**:
-   * Navigate to **Microsoft Entra ID (Azure AD)** ➔ **App registrations** ➔ **New registration**.
-   * Note the **Application (client) ID** and **Directory (tenant) ID**.
-2. **Generate a Client Secret**:
-   * Under your app registration, go to **Certificates & secrets** ➔ **New client secret**.
-   * Copy the secret **Value**.
-3. **Grant IAM Permissions**:
-   * Open your **Subscription** in Azure Portal ➔ **Access control (IAM)** ➔ **Add role assignment**.
-   * Assign the **Reader** role to your registered application.
-4. **Input to Dashboard**:
-   * Open the dashboard at `http://localhost:5173`.
-   * Go to **Settings ➔ Azure Account** and input your **Tenant ID**, **Client ID**, **Client Secret**, and **Subscription ID**.
+### Getting your Mailtrap Token:
+1. Go to **[Mailtrap.io](https://mailtrap.io)** and create a free account.
+2. Select your integration mode:
+   * **Sandbox (Email Testing — Recommended for Development)**:
+     * In the sidebar, go to **Inboxes** ➔ **My Inbox**.
+     * Emails sent to any address (including testing or throwaway emails) will appear immediately in this web inbox without sending real emails.
+     * Click **Show Credentials** / **API Tokens** to copy your token.
+   * **Email Sending (Production)**:
+     * In the sidebar, go to **Sending Domains** ➔ Verify your custom domain.
+     * Go to **API Tokens** ➔ Copy the token.
+3. Configure the token in `backend/.env` (or pass via `docker-compose.yml`):
+   ```env
+   MAILTRAP_TOKEN=your_mailtrap_token_here
+   MAILTRAP_ENDPOINT=https://send.api.mailtrap.io
+   ```
+
+---
+
+## 🗄️ Database Setup: Docker vs. MongoDB Atlas
+
+You can run MongoDB either locally via Docker or in the cloud via MongoDB Atlas:
+
+### Option A: Local Docker (Default — Zero Setup)
+The included `docker-compose.yml` automatically provisions a containerized MongoDB instance:
+```yaml
+mongodb:
+  image: mongo:latest
+  ports:
+    - "27017:27017"
+  environment:
+    MONGO_INITDB_ROOT_USERNAME: admin
+    MONGO_INITDB_ROOT_PASSWORD: password
+```
+* **Connection String**: `mongodb://admin:password@mongodb:27017/mydatabase?authSource=admin`
+
+### Option B: MongoDB Atlas (Cloud Cluster)
+If you want data persisted in the cloud and accessible across environments:
+1. Create a free M0 cluster on **[MongoDB Atlas](https://www.mongodb.com/atlas)**.
+2. Under **Security ➔ Database Access**, create a database user and password.
+3. Under **Security ➔ Network Access**, whitelist your IP (or `0.0.0.0/0` for universal access).
+4. Click **Connect ➔ Drivers** and copy your URI.
+5. Update `MONGO_URI` in `backend/.env`:
+   ```env
+   MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/nervops?retryWrites=true&w=majority
+   ```
+
+---
+
+## ☁️ Azure Account Setup (Service Principal & App Registration)
+
+To allow NervOps to query Azure resources, inspect security configurations, and fetch billing metrics, create an Azure Service Principal:
+
+### Step 1: Create the App Registration
+1. Sign in to the **[Azure Portal](https://portal.azure.com)**.
+2. Search for and select **Microsoft Entra ID** (Azure Active Directory).
+3. In the left navigation, go to **App registrations** ➔ click **➕ New registration**.
+4. Configure:
+   * **Name**: `NervOps-CSPM`
+   * **Supported account types**: `Accounts in this organizational directory only (Single tenant)`
+   * **Redirect URI**: Leave blank.
+5. Click **Register**.
+6. On the **Overview** page, copy:
+   * **Application (client) ID**
+   * **Directory (tenant) ID**
+
+### Step 2: Generate a Client Secret
+1. In the same App Registration page, click **Certificates & secrets** in the left menu.
+2. Click **➕ New client secret**.
+3. Add a description (e.g., `nervops-secret`), select an expiration (e.g., `180 days` or `24 months`), and click **Add**.
+4. ⚠️ **Immediate action**: Copy the string in the **Value** column (Azure only displays this once).
+
+### Step 3: Retrieve your Subscription ID
+1. Search for **Subscriptions** in the top search bar.
+2. Click on your active subscription (e.g., *Azure for Students* or *Pay-As-You-Go*).
+3. Copy the **Subscription ID** GUID.
+
+### Step 4: Grant IAM Permissions to the Application
+1. In your **Subscription** page, click **Access control (IAM)** on the left menu.
+2. Click **➕ Add** ➔ **Add role assignment**.
+3. Select the **Reader** role (read-only access to resources, security metrics, and billing), then click **Next**.
+4. Under **Assign access to**, select **User, group, or service principal**.
+5. Click **+ Select members**, search for `NervOps-CSPM`, select it, and click **Select**.
+6. Click **Review + assign**.
+
+### Step 5: Connect in the Dashboard
+1. Open the NervOps dashboard at [http://localhost:5173](http://localhost:5173).
+2. Go to **Settings ➔ Azure Account**.
+3. Input your **Tenant ID**, **Client ID**, **Client Secret**, and **Subscription ID**.
+4. Save the account. NervOps will encrypt the credentials client-side and immediately begin fetching your Azure telemetry!
 
 ---
 
@@ -144,9 +219,9 @@ npm run dev
 
 ## 🔒 Security Best Practices
 
-* **No Plaintext Storage**: Azure secrets are never stored unencrypted in the database or hardcoded in repositories.
-* **Environment Isolation**: Production tokens (`JWT_SECRET`, `MAILTRAP_TOKEN`, `MONGO_URI`) are passed dynamically via environment variables or secrets managers.
-* **Protected Routes**: All operational endpoints require bearer tokens issued upon secure authentication.
+* **Client-side Encryption**: Azure credentials are encrypted with AES-256 in the browser before being transmitted to the backend or saved to MongoDB.
+* **No Plaintext Storage**: Production tokens (`JWT_SECRET`, `MAILTRAP_TOKEN`, `MONGO_URI`) are passed dynamically via environment variables or secret managers.
+* **Strict Git Exclusions**: All `.env`, `.secret`, and `azure_credentials.*` files are excluded by `.gitignore`.
 
 ---
 
