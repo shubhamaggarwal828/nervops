@@ -1,148 +1,195 @@
 import {
-	BarChart2,
-	DollarSign,
-	Menu,
-	Settings,
-	ShoppingBag,
-	TrendingUp,
-	Users,
-	LogOut,
-  } from "lucide-react";
-  import { useState } from "react";
-  import { AnimatePresence, motion } from "framer-motion";
-  import { Link, useNavigate } from "react-router-dom";
-  import logoFull from "../../images/logo.png";
-  import logoIcon from "../../images/icon.png";
-  
-  const SIDEBAR_ITEMS = [
-	{
-	  name: "Azure Overview",
-	  icon: BarChart2,
-	  color: "#6366f1",
-	  href: "/",
-	},
-	{
-	  name: "Azure Detailed Metrics",
-	  icon: ShoppingBag,
-	  color: "#8B5CF6",
-	  href: "/azure-detailed-metrics",
-	},
-	{
-	  name: "Azure Audit Report",
-	  icon: Users,
-	  color: "#EC4899",
-	  href: "/azure-audit-report",
-	},
-	{ name: "Settings", icon: Settings, color: "#6EE7B7", href: "/settings" },
-  ];
-  
-  const Sidebar = () => {
-	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const navigate = useNavigate();
-  
-	const handleLogout = async () => {
-	  try {
-		const response = await fetch(`${import.meta.env.VITE_DEV_API_URL}/logout`, {
-		  method: "POST",
-		  credentials: "include", // Include cookies if needed
-		});
-  
-		const data = await response.json(); // Parse the JSON response
-  
-		if (response.ok && data.success) {
-		  console.log("Logout successful:", data.message);
-		  // Redirect to login page
-		  window.location.href = "/login"; // Forces a full reload to reset state
-		} else {
-		  console.error("Logout failed:", data.message || "Unknown error");
-		  alert("Failed to logout. Please try again.");
-		}
-	  } catch (error) {
-		console.error("Logout error:", error);
-		alert("An error occurred. Please try again.");
-	  }
-	};
-  
-	return (
-	  <motion.div
-		className={`relative z-10 transition-all duration-300 ease-in-out flex-shrink-0 ${
-		  isSidebarOpen ? "w-64" : "w-20"
-		}`}
-		animate={{ width: isSidebarOpen ? 256 : 80 }}
-	  >
-		<div className="h-full bg-[#1e2125] backdrop-blur-md p-4 flex flex-col border-r border-gray-700">
-		  {/* Toggle Button */}
-		  <motion.button
-			whileHover={{ scale: 1.1 }}
-			whileTap={{ scale: 0.9 }}
-			onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-			className="p-2 rounded-full hover:bg-gray-700 transition-colors max-w-fit"
-		  >
-			<Menu size={24} />
-		  </motion.button>
-  
-		  {/* Logo Section */}
-		  <div className="my-4 flex items-center justify-center">
-			{isSidebarOpen ? (
-			  <img src={logoFull} alt="Full Logo" className="w-40 object-contain" />
-			) : (
-			  <img src={logoIcon} alt="Logo Icon" className="w-14 object-contain" />
-			)}
-		  </div>
-  
-		  {/* Navigation Items */}
-		  <nav className="mt-8 flex-grow">
-			{SIDEBAR_ITEMS.map((item) => (
-			  <Link key={item.href} to={item.href}>
-				<motion.div className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2">
-				  <item.icon
-					size={20}
-					style={{ color: item.color, minWidth: "20px" }}
-				  />
-				  <AnimatePresence>
-					{isSidebarOpen && (
-					  <motion.span
-						className="ml-4 whitespace-nowrap"
-						initial={{ opacity: 0, width: 0 }}
-						animate={{ opacity: 1, width: "auto" }}
-						exit={{ opacity: 0, width: 0 }}
-						transition={{ duration: 0.2, delay: 0.3 }}
-					  >
-						{item.name}
-					  </motion.span>
-					)}
-				  </AnimatePresence>
-				</motion.div>
-			  </Link>
-			))}
-		  </nav>
-  
-		  {/* Logout Button */}
-		  <motion.button
-			whileHover={{ scale: 1.1 }}
-			whileTap={{ scale: 0.9 }}
-			onClick={handleLogout}
-			className="flex items-center mt-auto p-4 text-sm font-medium rounded-lg hover:bg-red-600 transition-colors"
-		  >
-			<LogOut size={20} style={{ color: "#F87171", minWidth: "20px" }} />
-			<AnimatePresence>
-			  {isSidebarOpen && (
-				<motion.span
-				  className="ml-4 whitespace-nowrap"
-				  initial={{ opacity: 0, width: 0 }}
-				  animate={{ opacity: 1, width: "auto" }}
-				  exit={{ opacity: 0, width: 0 }}
-				  transition={{ duration: 0.2, delay: 0.3 }}
-				>
-				  Logout
-				</motion.span>
-			  )}
-			</AnimatePresence>
-		  </motion.button>
-		</div>
-	  </motion.div>
-	);
+  LayoutDashboard,
+  ShieldAlert,
+  Activity,
+  Settings,
+  Menu,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Cloud
+} from "lucide-react";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Link, useLocation } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+
+const SIDEBAR_ITEMS = [
+  {
+    name: "Azure Overview",
+    icon: LayoutDashboard,
+    href: "/",
+    color: "#22d3ee", // cyan-400
+  },
+  {
+    name: "Detailed Metrics",
+    icon: Activity,
+    href: "/azure-detailed-metrics",
+    color: "#34d399", // emerald-400
+  },
+  {
+    name: "Audit & Security Report",
+    icon: ShieldAlert,
+    href: "/azure-audit-report",
+    color: "#f59e0b", // amber-500
+  },
+  {
+    name: "Settings & Cloud Sync",
+    icon: Settings,
+    href: "/settings",
+    color: "#94a3b8", // slate-400
+  },
+];
+
+const Sidebar = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const location = useLocation();
+  const { logout, user } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
-  
-  export default Sidebar;
-  
+
+  return (
+    <motion.div
+      className={`relative z-20 flex-shrink-0 transition-all duration-300 ease-in-out ${
+        isSidebarOpen ? "w-64" : "w-20"
+      }`}
+      animate={{ width: isSidebarOpen ? 256 : 80 }}
+    >
+      <div className="h-full bg-[#0b0f19] border-r border-slate-800/80 flex flex-col justify-between p-4 shadow-xl select-none">
+        {/* Top Branding Section */}
+        <div>
+          <div className="flex items-center justify-between pb-6 border-b border-slate-800/60">
+            {isSidebarOpen ? (
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                  <ShieldCheck className="size-5 text-slate-950 font-bold" />
+                </div>
+                <div>
+                  <span className="text-lg font-bold font-heading tracking-tight text-white block leading-none">
+                    Nerv<span className="text-cyan-400">Ops</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">
+                    CSPM Console
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <ShieldCheck className="size-5 text-slate-950 font-bold" />
+              </div>
+            )}
+
+            {isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
+          </div>
+
+          {!isSidebarOpen && (
+            <div className="flex justify-center my-3">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+
+          {/* Navigation Items */}
+          <nav className="mt-6 space-y-1.5">
+            {SIDEBAR_ITEMS.map((item) => {
+              const isActive = location.pathname === item.href;
+              const Icon = item.icon;
+
+              return (
+                <Link key={item.href} to={item.href}>
+                  <motion.div
+                    whileHover={{ x: 2 }}
+                    className={`flex items-center p-3 text-sm font-medium rounded-xl transition-all ${
+                      isActive
+                        ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-sm shadow-cyan-500/10"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent"
+                    }`}
+                  >
+                    <Icon
+                      size={20}
+                      style={{ color: isActive ? "#22d3ee" : item.color }}
+                      className="flex-shrink-0"
+                    />
+
+                    <AnimatePresence>
+                      {isSidebarOpen && (
+                        <motion.span
+                          className="ml-3.5 whitespace-nowrap font-medium"
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          {item.name}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User Card & Logout Button */}
+        <div className="pt-4 border-t border-slate-800/60">
+          {isSidebarOpen && user && (
+            <div className="mb-3 px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold uppercase">
+                {user.name ? user.name.charAt(0) : "U"}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-semibold text-white truncate">{user.name || "Operator"}</p>
+                <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleLogout}
+            className={`w-full flex items-center ${
+              isSidebarOpen ? "px-3.5 py-2.5 justify-start" : "p-2.5 justify-center"
+            } text-xs font-medium text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl transition-all cursor-pointer`}
+          >
+            <LogOut size={16} className="text-rose-400 flex-shrink-0" />
+            <AnimatePresence>
+              {isSidebarOpen && (
+                <motion.span
+                  className="ml-2.5 whitespace-nowrap"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                >
+                  Sign Out
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default Sidebar;

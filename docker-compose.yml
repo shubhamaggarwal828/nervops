@@ -26,7 +26,7 @@ services:
       MONGO_URI: "mongodb://admin:password@mongodb:27017/mydatabase?authSource=admin"
       CLIENT_URL: "http://localhost:5173"
       JWT_SECRET: "nervops_super_secret_jwt_key_2026"
-      MAILTRAP_TOKEN: "1854a18f1f56370feca6a047a461c8cb"
+      MAILTRAP_TOKEN: "b9f34c63691dec75a584a91664ee4992"
       MAILTRAP_ENDPOINT: "https://send.api.mailtrap.io"
       ENCRYPTION_KEY: "2c91ee9e2d3f63a5fb90e3a865476b2c9d15a8f7e3b2e517a63f1dfcb867fc21"
       ENCRYPTION_IV: "a3d7e2c3b1f8a913cb45e7b89265f43f"
